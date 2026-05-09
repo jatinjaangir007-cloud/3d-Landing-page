@@ -1,0 +1,2571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IRONCLAD GYM — Forge Your Legend</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root {
+    --fire: #ff4500;
+    --ember: #ff8c00;
+    --steel: #b0bec5;
+    --chrome: #e0e0e0;
+    --void: #050505;
+    --dark: #0d0d0d;
+    --mid: #1a1a1a;
+    --glow: 0 0 30px rgba(255,69,0,0.6), 0 0 60px rgba(255,69,0,0.3);
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--void);
+    color: var(--chrome);
+    font-family: 'Barlow', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* CUSTOM CURSOR */
+  #cursor {
+    position: fixed;
+    width: 12px; height: 12px;
+    background: var(--fire);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 99999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, width 0.2s, height 0.2s, background 0.2s;
+    box-shadow: var(--glow);
+  }
+  #cursor-ring {
+    position: fixed;
+    width: 36px; height: 36px;
+    border: 1.5px solid rgba(255,69,0,0.5);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 99998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.15s ease-out, width 0.3s, height 0.3s;
+  }
+
+  /* CANVAS BG */
+  #bg-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.4rem 4rem;
+    background: linear-gradient(to bottom, rgba(5,5,5,0.95), transparent);
+    backdrop-filter: blur(4px);
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    letter-spacing: 0.15em;
+    color: var(--chrome);
+    text-decoration: none;
+  }
+  .logo span { color: var(--fire); }
+  .nav-links { display: flex; gap: 2.5rem; list-style: none; }
+  .nav-links a {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--steel);
+    text-decoration: none;
+    transition: color 0.2s;
+    position: relative;
+  }
+  .nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -4px; left: 0;
+    width: 0; height: 1px;
+    background: var(--fire);
+    transition: width 0.3s;
+  }
+  .nav-links a:hover { color: var(--fire); }
+  .nav-links a:hover::after { width: 100%; }
+  .nav-cta {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--void);
+    background: var(--fire);
+    padding: 0.7rem 1.8rem;
+    border: none;
+    cursor: none;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+  .nav-cta:hover { background: var(--ember); box-shadow: var(--glow); }
+
+  /* HERO */
+  #hero {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 6rem;
+    z-index: 10;
+    overflow: hidden;
+  }
+  .hero-content { max-width: 700px; position: relative; z-index: 2; }
+
+  .hero-tag {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.35em;
+    color: var(--fire);
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.3s forwards;
+  }
+  .hero-tag::before {
+    content: '';
+    display: block;
+    width: 40px; height: 1px;
+    background: var(--fire);
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(5rem, 11vw, 10rem);
+    line-height: 0.9;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--chrome);
+    opacity: 0;
+    animation: fadeUp 0.9s 0.5s forwards;
+  }
+  .hero-title .accent { color: var(--fire); display: block; }
+  .hero-title .outline {
+    -webkit-text-stroke: 1px rgba(255,255,255,0.25);
+    color: transparent;
+    display: block;
+  }
+
+  .hero-sub {
+    font-family: 'Barlow', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 300;
+    line-height: 1.75;
+    color: var(--steel);
+    margin: 1.8rem 0 2.8rem;
+    max-width: 420px;
+    opacity: 0;
+    animation: fadeUp 0.9s 0.7s forwards;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1.2rem;
+    align-items: center;
+    opacity: 0;
+    animation: fadeUp 0.9s 0.9s forwards;
+  }
+  .btn-primary {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--void);
+    background: var(--fire);
+    padding: 1rem 2.8rem;
+    border: none;
+    cursor: none;
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-primary:hover {
+    background: var(--ember);
+    box-shadow: var(--glow);
+    transform: translateY(-2px);
+  }
+  .btn-ghost {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--chrome);
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 1rem 2.4rem;
+    cursor: none;
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    transition: border-color 0.2s, color 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-ghost:hover { border-color: var(--fire); color: var(--fire); }
+
+  /* HERO 3D floating elements */
+  .hero-3d-deco {
+    position: absolute;
+    right: 5%;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 420px; height: 420px;
+    z-index: 1;
+    perspective: 900px;
+    animation: fadeUp 1s 1s forwards;
+    opacity: 0;
+  }
+  .cube-wrapper {
+    width: 100%; height: 100%;
+    transform-style: preserve-3d;
+    animation: rotateCube 18s linear infinite;
+    position: relative;
+  }
+  .cube-face {
+    position: absolute;
+    width: 200px; height: 200px;
+    border: 1px solid rgba(255,69,0,0.35);
+    background: rgba(255,69,0,0.03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    color: rgba(255,69,0,0.4);
+    top: 50%; left: 50%;
+    margin: -100px;
+  }
+  .face-front  { transform: translateZ(100px); }
+  .face-back   { transform: rotateY(180deg) translateZ(100px); }
+  .face-left   { transform: rotateY(-90deg) translateZ(100px); }
+  .face-right  { transform: rotateY(90deg) translateZ(100px); }
+  .face-top    { transform: rotateX(90deg) translateZ(100px); }
+  .face-bottom { transform: rotateX(-90deg) translateZ(100px); }
+
+  /* STATS BAR */
+  .stats-bar {
+    position: relative;
+    z-index: 10;
+    background: linear-gradient(135deg, rgba(20,20,20,0.95), rgba(15,15,15,0.98));
+    border-top: 1px solid rgba(255,69,0,0.25);
+    border-bottom: 1px solid rgba(255,69,0,0.25);
+    padding: 2.4rem 6rem;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+  }
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    padding-right: 2rem;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s, transform 0.6s;
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-item.visible { opacity: 1; transform: translateY(0); }
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.5rem;
+    line-height: 1;
+    color: var(--fire);
+  }
+  .stat-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--steel);
+    text-transform: uppercase;
+  }
+
+  /* SECTION HEADER */
+  .section-tag {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.4em;
+    color: var(--fire);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+  }
+  .section-tag::before {
+    content: '';
+    display: block;
+    width: 30px; height: 1px;
+    background: var(--fire);
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 5vw, 5.5rem);
+    line-height: 0.95;
+    letter-spacing: 0.03em;
+    color: var(--chrome);
+  }
+  .section-title .accent { color: var(--fire); }
+
+  /* SERVICES */
+  #services {
+    position: relative;
+    z-index: 10;
+    padding: 8rem 6rem;
+  }
+  .services-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 4rem;
+  }
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5px;
+  }
+  .service-card {
+    background: var(--mid);
+    padding: 3rem 2.5rem;
+    position: relative;
+    overflow: hidden;
+    perspective: 600px;
+    transition: transform 0.4s;
+    cursor: none;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .service-card::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 3px;
+    background: var(--fire);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s ease;
+  }
+  .service-card:hover::before { transform: scaleX(1); }
+  .service-card:hover { transform: translateY(-6px) rotateX(2deg); z-index: 2; }
+  .service-card:hover .service-icon { transform: rotateY(360deg); }
+  .service-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 5rem;
+    color: rgba(255,255,255,0.04);
+    position: absolute;
+    top: 1rem; right: 1.5rem;
+    line-height: 1;
+  }
+  .service-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+    display: block;
+    transition: transform 0.7s cubic-bezier(.68,-0.55,.27,1.55);
+  }
+  .service-card h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--chrome);
+    margin-bottom: 0.8rem;
+  }
+  .service-card p {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--steel);
+    font-weight: 300;
+  }
+
+  /* TRAINERS */
+  #trainers {
+    position: relative;
+    z-index: 10;
+    padding: 8rem 6rem;
+    background: linear-gradient(180deg, transparent, rgba(255,69,0,0.04), transparent);
+  }
+  .trainers-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-top: 4rem;
+  }
+  .trainer-card {
+    position: relative;
+    cursor: none;
+    perspective: 800px;
+    height: 440px;
+  }
+  .trainer-inner {
+    width: 100%; height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.7s cubic-bezier(.4,0,.2,1);
+    position: relative;
+  }
+  .trainer-card:hover .trainer-inner { transform: rotateY(180deg); }
+  .trainer-front, .trainer-back {
+    position: absolute;
+    width: 100%; height: 100%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .trainer-front {
+    background: var(--mid);
+    border: 1px solid rgba(255,255,255,0.05);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .trainer-avatar {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 70%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7rem;
+    background: linear-gradient(135deg, #1a1a1a, #111);
+  }
+  .trainer-info {
+    position: relative;
+    z-index: 2;
+    padding: 1.8rem;
+    background: linear-gradient(to top, var(--dark) 0%, transparent 100%);
+  }
+  .trainer-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 0.06em;
+    color: var(--chrome);
+  }
+  .trainer-spec {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--fire);
+    text-transform: uppercase;
+  }
+  .trainer-back {
+    background: linear-gradient(135deg, #1a0a00, #0d0d0d);
+    border: 1px solid rgba(255,69,0,0.3);
+    transform: rotateY(180deg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem;
+    text-align: center;
+    gap: 1rem;
+  }
+  .trainer-back h4 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+    color: var(--fire);
+  }
+  .trainer-back p { font-size: 0.9rem; color: var(--steel); line-height: 1.7; }
+  .trainer-stats { display: flex; gap: 1.5rem; margin-top: 0.5rem; }
+  .t-stat { text-align: center; }
+  .t-stat strong {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--chrome);
+    display: block;
+  }
+  .t-stat span { font-size: 0.72rem; color: var(--steel); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  /* PRICING */
+  #pricing {
+    position: relative;
+    z-index: 10;
+    padding: 8rem 6rem;
+  }
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-top: 4rem;
+    perspective: 1200px;
+  }
+  .pricing-card {
+    background: var(--mid);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 3rem 2.5rem;
+    position: relative;
+    cursor: none;
+    transition: transform 0.4s, box-shadow 0.4s;
+    transform-style: preserve-3d;
+  }
+  .pricing-card:hover {
+    transform: translateY(-12px) rotateX(3deg) rotateY(-1deg);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 40px rgba(255,69,0,0.15);
+  }
+  .pricing-card.featured {
+    background: linear-gradient(135deg, #1a0800, #120500);
+    border-color: rgba(255,69,0,0.5);
+    box-shadow: 0 0 40px rgba(255,69,0,0.15);
+  }
+  .featured-badge {
+    position: absolute;
+    top: -1px; left: 50%; transform: translateX(-50%);
+    background: var(--fire);
+    color: var(--void);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.35rem 1.5rem;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+  .plan-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    color: var(--fire);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+  }
+  .plan-price {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 5.5rem;
+    line-height: 1;
+    color: var(--chrome);
+  }
+  .plan-price span { font-size: 1.8rem; vertical-align: top; margin-top: 1rem; display: inline-block; color: var(--steel); }
+  .plan-period {
+    font-size: 0.85rem;
+    color: var(--steel);
+    margin-bottom: 2rem;
+    margin-top: 0.3rem;
+  }
+  .plan-divider {
+    width: 100%; height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);
+    margin-bottom: 2rem;
+  }
+  .plan-features { list-style: none; display: flex; flex-direction: column; gap: 0.9rem; margin-bottom: 2.5rem; }
+  .plan-features li {
+    font-size: 0.88rem;
+    color: var(--steel);
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-weight: 300;
+  }
+  .plan-features li::before {
+    content: '▸';
+    color: var(--fire);
+    font-size: 0.7rem;
+    flex-shrink: 0;
+  }
+
+  /* PARALLAX BAND */
+  .marquee-band {
+    position: relative;
+    z-index: 10;
+    overflow: hidden;
+    background: var(--fire);
+    padding: 1rem 0;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .marquee-track {
+    display: flex;
+    gap: 0;
+    white-space: nowrap;
+    animation: marquee 20s linear infinite;
+    width: max-content;
+  }
+  .marquee-item {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.2em;
+    color: var(--void);
+    padding: 0 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .marquee-item::after { content: '✦'; font-size: 0.6rem; }
+
+  /* CTA SECTION */
+  #cta {
+    position: relative;
+    z-index: 10;
+    padding: 10rem 6rem;
+    text-align: center;
+    overflow: hidden;
+  }
+  .cta-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(255,69,0,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  #cta .section-title { font-size: clamp(4rem, 8vw, 8rem); margin: 1rem 0 2rem; }
+  #cta p { font-size: 1.1rem; color: var(--steel); max-width: 500px; margin: 0 auto 3rem; line-height: 1.8; }
+
+  /* FOOTER */
+  footer {
+    position: relative;
+    z-index: 10;
+    background: var(--dark);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 4rem 6rem 3rem;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 4rem;
+  }
+  .footer-brand .logo { font-size: 2.5rem; }
+  .footer-brand p { font-size: 0.88rem; color: var(--steel); line-height: 1.7; margin-top: 1rem; max-width: 260px; }
+  .footer-col h4 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: var(--fire);
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+  }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
+  .footer-col ul a {
+    font-size: 0.88rem;
+    color: var(--steel);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-col ul a:hover { color: var(--fire); }
+  .footer-bottom {
+    position: relative;
+    z-index: 10;
+    background: var(--dark);
+    border-top: 1px solid rgba(255,255,255,0.04);
+    padding: 1.5rem 6rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-bottom span {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: 0.05em;
+  }
+
+  /* SCROLL REVEAL */
+  .reveal {
+    opacity: 0;
+    transform: translateY(35px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes rotateCube {
+    0%   { transform: rotateX(0deg) rotateY(0deg); }
+    100% { transform: rotateX(360deg) rotateY(360deg); }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(255,69,0,0.3); }
+    50% { box-shadow: 0 0 50px rgba(255,69,0,0.7); }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--void); }
+  ::-webkit-scrollbar-thumb { background: var(--fire); }
+
+  /* ============================================================
+     NAV AUTH BUTTONS
+  ============================================================ */
+  .nav-auth { display:flex; gap:.7rem; align-items:center; }
+  .nav-auth-btn {
+    font-family:'Barlow Condensed',sans-serif; font-weight:700;
+    font-size:.78rem; letter-spacing:.18em; text-transform:uppercase;
+    padding:.55rem 1.4rem; border:1.5px solid rgba(255,69,0,.45);
+    background:transparent; color:var(--steel); cursor:none;
+    clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+    transition:all .22s;
+  }
+  .nav-auth-btn:hover { border-color:var(--fire); color:var(--fire); }
+  .nav-auth-btn.filled { background:var(--fire); color:var(--void); border-color:var(--fire); }
+  .nav-auth-btn.filled:hover { background:var(--ember); box-shadow:var(--glow); }
+  .nav-user-pill {
+    display:flex; align-items:center; gap:.6rem;
+    font-family:'Barlow Condensed',sans-serif; font-weight:600;
+    font-size:.78rem; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--steel); cursor:none; position:relative;
+  }
+  .nav-user-avatar {
+    width:32px; height:32px; border-radius:50%;
+    background:var(--fire); color:var(--void);
+    font-family:'Bebas Neue',sans-serif; font-size:1rem;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 14px rgba(255,69,0,.45);
+  }
+  .nav-user-menu {
+    position:absolute; top:calc(100% + .8rem); right:0;
+    background:rgba(18,18,18,.98); border:1px solid rgba(255,69,0,.2);
+    padding:.5rem 0; min-width:180px; z-index:200;
+    opacity:0; pointer-events:none; transform:translateY(-6px);
+    transition:all .22s; clip-path:polygon(8px 0%,100% 0%,100% 100%,0% 100%,0% 8px);
+  }
+  .nav-user-pill:hover .nav-user-menu { opacity:1; pointer-events:all; transform:translateY(0); }
+  .nav-user-menu a, .nav-user-menu button {
+    display:block; width:100%; text-align:left;
+    padding:.6rem 1.2rem; font-family:'Barlow Condensed',sans-serif;
+    font-weight:600; font-size:.78rem; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--steel); text-decoration:none;
+    background:none; border:none; cursor:none; transition:color .2s;
+  }
+  .nav-user-menu a:hover, .nav-user-menu button:hover { color:var(--fire); }
+  .nav-user-menu .menu-divider { height:1px; background:rgba(255,255,255,.06); margin:.3rem 0; }
+
+  /* ============================================================
+     MODAL OVERLAY (shared)
+  ============================================================ */
+  .ic-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.85);
+    backdrop-filter:blur(10px); z-index:9000;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .35s ease;
+  }
+  .ic-overlay.open { opacity:1; pointer-events:all; }
+
+  .ic-modal {
+    background:linear-gradient(145deg,#111,#0d0d0d);
+    border:1px solid rgba(255,69,0,.2);
+    width:90%; max-width:480px; max-height:90vh; overflow-y:auto;
+    padding:3rem 2.8rem; position:relative;
+    clip-path:polygon(16px 0%,100% 0%,100% calc(100% - 16px),calc(100% - 16px) 100%,0% 100%,0% 16px);
+    transform:translateY(20px); transition:transform .4s ease;
+  }
+  .ic-overlay.open .ic-modal { transform:translateY(0); }
+  .ic-modal-logo {
+    font-family:'Bebas Neue',sans-serif; font-size:1.5rem;
+    letter-spacing:.2em; margin-bottom:.2rem;
+  }
+  .ic-modal-logo span { color:var(--fire); }
+  .ic-modal-subtitle {
+    font-family:'Barlow Condensed',sans-serif; font-size:.72rem;
+    font-weight:600; letter-spacing:.3em; text-transform:uppercase;
+    color:var(--fire); margin-bottom:2rem;
+  }
+  .ic-modal-title {
+    font-family:'Bebas Neue',sans-serif; font-size:2.5rem;
+    letter-spacing:.06em; color:var(--chrome); margin-bottom:2rem;
+    line-height:1;
+  }
+  .ic-modal-close {
+    position:absolute; top:1.2rem; right:1.4rem;
+    background:none; border:none; color:var(--steel);
+    font-size:1.3rem; cursor:none; transition:color .2s;
+  }
+  .ic-modal-close:hover { color:var(--fire); }
+
+  /* Form fields */
+  .ic-form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  .ic-form-group { display:flex; flex-direction:column; gap:.4rem; margin-bottom:1.1rem; }
+  .ic-form-group label {
+    font-family:'Barlow Condensed',sans-serif; font-weight:600;
+    font-size:.72rem; letter-spacing:.2em; text-transform:uppercase; color:var(--steel);
+  }
+  .ic-input {
+    background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
+    padding:.82rem 1rem; color:var(--chrome); font-family:'Barlow',sans-serif;
+    font-size:.9rem; outline:none; transition:border-color .3s;
+    clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+  }
+  .ic-input:focus { border-color:var(--fire); box-shadow:0 0 12px rgba(255,69,0,.15); }
+  .ic-input::placeholder { color:rgba(176,190,197,.35); }
+  .ic-select {
+    background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
+    padding:.82rem 1rem; color:var(--chrome); font-family:'Barlow',sans-serif;
+    font-size:.9rem; outline:none; transition:border-color .3s;
+    appearance:none; cursor:none;
+  }
+  .ic-select:focus { border-color:var(--fire); }
+  .ic-select option { background:#111; }
+  .ic-error {
+    font-family:'Barlow Condensed',sans-serif; font-size:.72rem;
+    letter-spacing:.1em; color:#ff4466; min-height:1rem; margin-bottom:.6rem;
+  }
+  .ic-success-msg {
+    text-align:center; padding:1.5rem 0;
+  }
+  .ic-success-icon {
+    font-size:3rem; margin-bottom:1rem;
+    animation:scaleIn .5s cubic-bezier(.68,-.55,.27,1.55);
+  }
+  @keyframes scaleIn { from{transform:scale(0)} to{transform:scale(1)} }
+  .ic-form-switch {
+    text-align:center; margin-top:1.4rem;
+    font-family:'Barlow Condensed',sans-serif; font-size:.8rem;
+    letter-spacing:.08em; color:var(--steel);
+  }
+  .ic-form-switch button {
+    background:none; border:none; color:var(--fire);
+    cursor:none; font-family:'Barlow Condensed',sans-serif;
+    font-size:.8rem; font-weight:700; letter-spacing:.08em;
+    text-decoration:underline; transition:color .2s;
+  }
+  .ic-form-switch button:hover { color:var(--ember); }
+  .ic-plan-badge {
+    display:inline-block; padding:.3rem 1rem;
+    background:rgba(255,69,0,.12); border:1px solid rgba(255,69,0,.3);
+    color:var(--fire); font-family:'Barlow Condensed',sans-serif;
+    font-size:.72rem; font-weight:700; letter-spacing:.2em;
+    text-transform:uppercase; margin-bottom:1.8rem;
+  }
+  .ic-plan-summary {
+    background:rgba(255,69,0,.05); border:1px solid rgba(255,69,0,.15);
+    padding:1.2rem; margin-bottom:1.5rem;
+  }
+  .ic-plan-summary-row {
+    display:flex; justify-content:space-between; align-items:center;
+    font-family:'Barlow Condensed',sans-serif; font-size:.85rem;
+    letter-spacing:.08em; color:var(--steel); padding:.25rem 0;
+  }
+  .ic-plan-summary-row.total {
+    border-top:1px solid rgba(255,69,0,.2); margin-top:.5rem;
+    padding-top:.75rem; color:var(--chrome); font-weight:700;
+    font-size:1rem;
+  }
+  .ic-plan-summary-row strong { color:var(--fire); }
+
+  /* Payment card input styling */
+  .card-row { display:grid; grid-template-columns:2fr 1fr 1fr; gap:.8rem; }
+  .card-icons { display:flex; gap:.5rem; margin-bottom:1rem; }
+  .card-icon {
+    padding:.3rem .7rem; background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.1);
+    font-family:'Barlow Condensed',sans-serif; font-size:.65rem;
+    letter-spacing:.1em; color:var(--steel);
+  }
+  .payment-secure {
+    display:flex; align-items:center; gap:.5rem; margin-top:.8rem;
+    font-family:'Barlow Condensed',sans-serif; font-size:.68rem;
+    letter-spacing:.12em; color:rgba(176,190,197,.5); text-transform:uppercase;
+  }
+  .payment-secure::before {
+    content:'🔒'; font-size:.8rem;
+  }
+  .step-indicator {
+    display:flex; gap:.5rem; align-items:center; margin-bottom:1.8rem;
+  }
+  .step-dot {
+    width:8px; height:8px; border-radius:50%;
+    background:rgba(255,255,255,.12); transition:background .3s;
+  }
+  .step-dot.active { background:var(--fire); box-shadow:0 0 8px rgba(255,69,0,.6); }
+  .step-label {
+    font-family:'Barlow Condensed',sans-serif; font-size:.68rem;
+    letter-spacing:.15em; text-transform:uppercase; color:var(--steel); margin-left:.3rem;
+  }
+
+  /* ============================================================
+     MEMBER DASHBOARD MODAL
+  ============================================================ */
+  .ic-dashboard-modal {
+    max-width:780px; padding:2.5rem;
+  }
+  .dash-grid { display:grid; grid-template-columns:200px 1fr; gap:2rem; }
+  .dash-sidebar { border-right:1px solid rgba(255,69,0,.15); padding-right:1.5rem; }
+  .dash-avatar {
+    width:70px; height:70px; border-radius:50%;
+    background:linear-gradient(135deg,var(--fire),var(--ember));
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Bebas Neue',sans-serif; font-size:2.2rem;
+    color:var(--void); margin-bottom:1rem;
+    box-shadow:0 0 24px rgba(255,69,0,.4);
+  }
+  .dash-name {
+    font-family:'Bebas Neue',sans-serif; font-size:1.4rem;
+    letter-spacing:.06em; color:var(--chrome); margin-bottom:.2rem;
+  }
+  .dash-plan {
+    font-family:'Barlow Condensed',sans-serif; font-size:.7rem;
+    font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--fire);
+    margin-bottom:1.5rem;
+  }
+  .dash-nav { list-style:none; display:flex; flex-direction:column; gap:.2rem; }
+  .dash-nav button {
+    width:100%; text-align:left; padding:.65rem .9rem;
+    font-family:'Barlow Condensed',sans-serif; font-weight:600;
+    font-size:.8rem; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--steel); background:none; border:none; cursor:none;
+    transition:color .2s, background .2s; clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);
+  }
+  .dash-nav button:hover { color:var(--fire); background:rgba(255,69,0,.06); }
+  .dash-nav button.active { color:var(--void); background:var(--fire); }
+  .dash-content { }
+  .dash-tab { display:none; }
+  .dash-tab.active { display:block; }
+  .dash-section-title {
+    font-family:'Bebas Neue',sans-serif; font-size:1.6rem;
+    letter-spacing:.06em; color:var(--chrome); margin-bottom:1.4rem;
+    border-bottom:1px solid rgba(255,69,0,.15); padding-bottom:.6rem;
+  }
+  .dash-stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.5rem; }
+  .dash-stat {
+    background:rgba(255,69,0,.06); border:1px solid rgba(255,69,0,.12);
+    padding:1rem; text-align:center;
+    clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+  }
+  .dash-stat-val {
+    font-family:'Bebas Neue',sans-serif; font-size:2rem; color:var(--fire); line-height:1;
+  }
+  .dash-stat-lbl {
+    font-family:'Barlow Condensed',sans-serif; font-size:.62rem;
+    letter-spacing:.18em; text-transform:uppercase; color:var(--steel); margin-top:.25rem;
+  }
+  .dash-schedule-item {
+    display:flex; align-items:center; gap:1rem; padding:.9rem;
+    background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);
+    margin-bottom:.6rem; transition:border-color .2s;
+  }
+  .dash-schedule-item:hover { border-color:rgba(255,69,0,.25); }
+  .dash-class-time {
+    font-family:'Bebas Neue',sans-serif; font-size:1.1rem; color:var(--fire);
+    min-width:55px;
+  }
+  .dash-class-name {
+    font-family:'Barlow Condensed',sans-serif; font-weight:700;
+    font-size:.9rem; letter-spacing:.08em; text-transform:uppercase; color:var(--chrome);
+  }
+  .dash-class-coach { font-size:.78rem; color:var(--steel); }
+  .dash-class-badge {
+    margin-left:auto; font-family:'Barlow Condensed',sans-serif;
+    font-size:.62rem; font-weight:700; letter-spacing:.15em; text-transform:uppercase;
+    padding:.2rem .7rem; background:rgba(255,69,0,.12);
+    border:1px solid rgba(255,69,0,.25); color:var(--fire);
+  }
+  .dash-billing-row {
+    display:flex; justify-content:space-between; padding:.8rem;
+    background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);
+    margin-bottom:.5rem; font-family:'Barlow Condensed',sans-serif;
+    font-size:.82rem; letter-spacing:.06em;
+  }
+  .dash-billing-row span:first-child { color:var(--steel); }
+  .dash-billing-row span:last-child { color:var(--chrome); font-weight:600; }
+
+  /* ============================================================
+     ADMIN PANEL
+  ============================================================ */
+  .admin-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.92);
+    backdrop-filter:blur(12px); z-index:9500;
+    opacity:0; pointer-events:none; transition:opacity .35s;
+  }
+  .admin-overlay.open { opacity:1; pointer-events:all; }
+  .admin-panel {
+    position:fixed; inset:0; z-index:9501;
+    display:flex; opacity:0; pointer-events:none;
+    transform:translateY(20px); transition:opacity .4s, transform .4s ease;
+  }
+  .admin-panel.open { opacity:1; pointer-events:all; transform:translateY(0); }
+
+  /* Admin Login */
+  .admin-login-wrap {
+    width:100%; display:flex; align-items:center; justify-content:center;
+    background:var(--void);
+  }
+  .admin-login-box {
+    background:linear-gradient(145deg,#111,#0d0d0d);
+    border:1px solid rgba(255,69,0,.2); padding:3.5rem 3rem;
+    width:90%; max-width:400px; text-align:center;
+    clip-path:polygon(16px 0%,100% 0%,100% calc(100% - 16px),calc(100% - 16px) 100%,0% 100%,0% 16px);
+  }
+  .admin-login-logo {
+    font-family:'Bebas Neue',sans-serif; font-size:2rem; letter-spacing:.25em;
+    color:var(--chrome); margin-bottom:.2rem;
+  }
+  .admin-login-logo span { color:var(--fire); }
+  .admin-login-subtitle {
+    font-family:'Barlow Condensed',sans-serif; font-size:.7rem;
+    font-weight:600; letter-spacing:.3em; text-transform:uppercase;
+    color:rgba(255,69,0,.7); margin-bottom:2.5rem;
+  }
+  .admin-login-err {
+    font-family:'Barlow Condensed',sans-serif; font-size:.72rem;
+    letter-spacing:.1em; color:#ff4466; min-height:1.2rem; margin-bottom:.5rem;
+  }
+
+  /* Admin layout */
+  .admin-sidebar {
+    width:240px; flex-shrink:0; background:#0a0a0a;
+    border-right:1px solid rgba(255,69,0,.15);
+    display:flex; flex-direction:column; padding:2rem 0; height:100vh; overflow-y:auto;
+  }
+  .admin-sidebar-logo {
+    font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:.25em;
+    padding:0 1.5rem; margin-bottom:.2rem; color:var(--chrome);
+  }
+  .admin-sidebar-logo span { color:var(--fire); }
+  .admin-sidebar-tag {
+    font-family:'Barlow Condensed',sans-serif; font-size:.58rem;
+    font-weight:600; letter-spacing:.28em; text-transform:uppercase;
+    color:rgba(255,69,0,.55); padding:0 1.5rem; margin-bottom:2.2rem;
+  }
+  .admin-nav { list-style:none; flex:1; }
+  .admin-nav-btn {
+    width:100%; text-align:left; padding:.85rem 1.5rem;
+    display:flex; align-items:center; gap:.75rem;
+    font-family:'Barlow Condensed',sans-serif; font-weight:600;
+    font-size:.8rem; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--steel); background:none; border:none; cursor:none; transition:all .2s;
+    border-left:2px solid transparent;
+  }
+  .admin-nav-btn:hover { color:var(--chrome); background:rgba(255,255,255,.04); }
+  .admin-nav-btn.active { color:var(--fire); border-left-color:var(--fire); background:rgba(255,69,0,.07); }
+  .admin-sidebar-foot {
+    padding:1.5rem; border-top:1px solid rgba(255,255,255,.06); margin-top:auto;
+  }
+  .admin-logout-btn {
+    width:100%; padding:.65rem; background:transparent;
+    border:1px solid rgba(255,69,0,.25); color:rgba(176,190,197,.6);
+    font-family:'Barlow Condensed',sans-serif; font-weight:600;
+    font-size:.75rem; letter-spacing:.15em; text-transform:uppercase;
+    cursor:none; transition:all .22s;
+    clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+  }
+  .admin-logout-btn:hover { border-color:#ff4466; color:#ff4466; }
+
+  .admin-main {
+    flex:1; background:var(--void); overflow-y:auto; padding:2.5rem;
+  }
+  .admin-topbar {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:2.5rem; flex-wrap:wrap; gap:1rem;
+  }
+  .admin-page-title {
+    font-family:'Bebas Neue',sans-serif; font-size:2.2rem;
+    letter-spacing:.06em; color:var(--chrome);
+  }
+  .admin-close-btn {
+    font-family:'Barlow Condensed',sans-serif; font-weight:700;
+    font-size:.75rem; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--steel); background:none; border:1px solid rgba(255,255,255,.12);
+    padding:.5rem 1.2rem; cursor:none; transition:all .2s;
+    clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+  }
+  .admin-close-btn:hover { border-color:var(--fire); color:var(--fire); }
+  .admin-tab { display:none; }
+  .admin-tab.active { display:block; }
+
+  /* Admin stat cards */
+  .admin-kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.2rem; margin-bottom:2.5rem; }
+  .admin-kpi {
+    background:linear-gradient(145deg,#111,#0d0d0d);
+    border:1px solid rgba(255,255,255,.06); padding:1.6rem;
+    transition:border-color .3s;
+    clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);
+  }
+  .admin-kpi:hover { border-color:rgba(255,69,0,.3); }
+  .admin-kpi-label {
+    font-family:'Barlow Condensed',sans-serif; font-size:.62rem;
+    font-weight:600; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--steel); margin-bottom:.5rem;
+  }
+  .admin-kpi-val {
+    font-family:'Bebas Neue',sans-serif; font-size:2.4rem;
+    color:var(--fire); line-height:1; margin-bottom:.25rem;
+  }
+  .admin-kpi-change {
+    font-family:'Barlow Condensed',sans-serif; font-size:.65rem;
+    letter-spacing:.1em; color:var(--steel);
+  }
+  .admin-kpi-change.up { color:#22d3a5; }
+  .admin-kpi-change.down { color:#ff4466; }
+
+  /* Admin tables */
+  .admin-card {
+    background:linear-gradient(145deg,#111,#0d0d0d);
+    border:1px solid rgba(255,255,255,.06); margin-bottom:2rem; overflow:hidden;
+  }
+  .admin-card-head {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:1.2rem 1.5rem; border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .admin-card-title {
+    font-family:'Bebas Neue',sans-serif; font-size:1.2rem;
+    letter-spacing:.08em; color:var(--chrome);
+  }
+  .admin-table { width:100%; border-collapse:collapse; }
+  .admin-table th {
+    font-family:'Barlow Condensed',sans-serif; font-size:.62rem;
+    font-weight:700; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--steel); text-align:left; padding:.9rem 1.2rem;
+    border-bottom:1px solid rgba(255,255,255,.06); background:rgba(255,255,255,.02);
+  }
+  .admin-table td {
+    padding:.9rem 1.2rem; font-size:.82rem; color:rgba(176,190,197,.8);
+    border-bottom:1px solid rgba(255,255,255,.04); vertical-align:middle;
+  }
+  .admin-table tr:last-child td { border-bottom:none; }
+  .admin-table tr:hover td { background:rgba(255,69,0,.03); }
+  .admin-table td strong { color:var(--chrome); }
+  .a-badge {
+    display:inline-block; padding:.22rem .7rem;
+    font-family:'Barlow Condensed',sans-serif; font-size:.6rem;
+    font-weight:700; letter-spacing:.15em; text-transform:uppercase;
+  }
+  .a-badge-active { background:rgba(34,211,165,.1); color:#22d3a5; border:1px solid rgba(34,211,165,.25); }
+  .a-badge-pending { background:rgba(255,170,0,.1); color:#ffaa00; border:1px solid rgba(255,170,0,.25); }
+  .a-badge-cancelled { background:rgba(255,68,102,.1); color:#ff4466; border:1px solid rgba(255,68,102,.25); }
+  .a-badge-warrior { background:rgba(176,190,197,.08); color:var(--steel); border:1px solid rgba(176,190,197,.2); }
+  .a-badge-champion { background:rgba(255,69,0,.1); color:var(--fire); border:1px solid rgba(255,69,0,.3); }
+  .a-badge-legend { background:rgba(255,215,0,.1); color:#ffd700; border:1px solid rgba(255,215,0,.3); }
+  .admin-action-btn {
+    font-family:'Barlow Condensed',sans-serif; font-weight:700;
+    font-size:.65rem; letter-spacing:.12em; text-transform:uppercase;
+    padding:.28rem .75rem; background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.1); color:var(--steel);
+    cursor:none; transition:all .2s; margin-right:.3rem;
+  }
+  .admin-action-btn:hover { border-color:var(--fire); color:var(--fire); }
+  .admin-action-btn.danger:hover { border-color:#ff4466; color:#ff4466; }
+  .admin-action-btn.primary { background:rgba(255,69,0,.12); border-color:rgba(255,69,0,.3); color:var(--fire); }
+  .admin-action-btn.primary:hover { background:var(--fire); color:var(--void); }
+
+  /* Revenue bars */
+  .admin-rev-chart { display:flex; align-items:flex-end; gap:.6rem; height:120px; padding:0 1.5rem 1.5rem; }
+  .admin-rev-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:.4rem; }
+  .admin-rev-bar {
+    width:100%; border-radius:2px 2px 0 0;
+    background:linear-gradient(to top,rgba(255,69,0,.5),rgba(255,140,0,.6));
+    border-top:1px solid var(--fire); transition:all .3s; cursor:none;
+  }
+  .admin-rev-bar:hover { background:linear-gradient(to top,var(--fire),var(--ember)); box-shadow:0 0 12px rgba(255,69,0,.4); }
+  .admin-rev-label {
+    font-family:'Barlow Condensed',sans-serif; font-size:.55rem;
+    font-weight:600; letter-spacing:.1em; color:var(--steel); text-transform:uppercase;
+  }
+
+  /* Toast */
+  .ic-toast {
+    position:fixed; bottom:2rem; left:50%; transform:translateX(-50%) translateY(60px);
+    background:#111; border:1px solid rgba(255,69,0,.35);
+    padding:.75rem 1.8rem; z-index:99999; white-space:nowrap;
+    font-family:'Barlow Condensed',sans-serif; font-size:.82rem; letter-spacing:.1em;
+    color:var(--chrome); display:flex; align-items:center; gap:.7rem;
+    transition:transform .4s ease, opacity .4s;
+    clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+    box-shadow:0 0 25px rgba(255,69,0,.2);
+  }
+  .ic-toast.show { transform:translateX(-50%) translateY(0); }
+  .ic-toast::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--fire); box-shadow:0 0 8px var(--fire); }
+
+  @media(max-width:768px) {
+    .admin-kpi-grid { grid-template-columns:1fr 1fr; }
+    .ic-form-row, .card-row { grid-template-columns:1fr; }
+    .dash-grid { grid-template-columns:1fr; }
+    .dash-sidebar { border-right:none; border-bottom:1px solid rgba(255,69,0,.15); padding-right:0; padding-bottom:1.5rem; }
+    .dash-stat-row { grid-template-columns:1fr 1fr; }
+    .admin-sidebar { display:none; }
+    .admin-kpi-grid { grid-template-columns:1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<canvas id="bg-canvas"></canvas>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="logo">IRON<span>CLAD</span></a>
+  <ul class="nav-links">
+    <li><a href="#services">Training</a></li>
+    <li><a href="#trainers">Coaches</a></li>
+    <li><a href="#pricing">Plans</a></li>
+    <li><a href="#cta">Contact</a></li>
+  </ul>
+  <div class="nav-auth" id="nav-auth-area">
+    <button class="nav-auth-btn" onclick="openAuthModal('login')">Log In</button>
+    <button class="nav-auth-btn filled" onclick="openAuthModal('signup')">Sign Up</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-content">
+    <div class="hero-tag">Est. 2015 — Premium Training</div>
+    <h1 class="hero-title">
+      <span>Forge</span>
+      <span class="accent">Your</span>
+      <span class="outline">Legend</span>
+    </h1>
+    <p class="hero-sub">Where iron meets willpower. World-class facilities, elite coaching, and a community built for champions who refuse to settle.</p>
+    <div class="hero-actions">
+      <a href="#pricing" class="btn-primary">Start Training</a>
+      <button class="btn-ghost" onclick="openAuthModal('signup')">Join Free →</button>
+    </div>
+  </div>
+
+  <!-- 3D Cube Deco -->
+  <div class="hero-3d-deco">
+    <div class="cube-wrapper">
+      <div class="cube-face face-front">💪</div>
+      <div class="cube-face face-back">🔥</div>
+      <div class="cube-face face-left">⚡</div>
+      <div class="cube-face face-right">🏆</div>
+      <div class="cube-face face-top">💎</div>
+      <div class="cube-face face-bottom">🎯</div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <div class="stat-num" data-target="12000">0</div>
+    <div class="stat-label">Active Members</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num" data-target="48">0</div>
+    <div class="stat-label">Expert Coaches</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num" data-target="120">0</div>
+    <div class="stat-label">Weekly Classes</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num" data-target="9">0</div>
+    <div class="stat-label">Locations</div>
+  </div>
+</div>
+
+<!-- MARQUEE -->
+<div class="marquee-band">
+  <div class="marquee-track" id="marqueeTrack"></div>
+</div>
+
+<!-- SERVICES -->
+<section id="services">
+  <div class="services-header reveal">
+    <div>
+      <div class="section-tag">What We Offer</div>
+      <h2 class="section-title">Elite <span class="accent">Programs</span></h2>
+    </div>
+    <a href="#pricing" class="btn-ghost reveal">View All Plans →</a>
+  </div>
+  <div class="services-grid">
+    <div class="service-card reveal reveal-delay-1">
+      <span class="service-num">01</span>
+      <span class="service-icon">🏋️</span>
+      <h3>Strength Training</h3>
+      <p>Periodized programming designed to maximize progressive overload. From beginner foundations to advanced powerlifting protocols.</p>
+    </div>
+    <div class="service-card reveal reveal-delay-2">
+      <span class="service-num">02</span>
+      <span class="service-icon">🥊</span>
+      <h3>Combat Sports</h3>
+      <p>Boxing, MMA, and Muay Thai classes led by professional fighters. Build striking power, footwork, and mental toughness.</p>
+    </div>
+    <div class="service-card reveal reveal-delay-3">
+      <span class="service-num">03</span>
+      <span class="service-icon">⚡</span>
+      <h3>HIIT & Conditioning</h3>
+      <p>High-intensity metabolic training sessions that torch fat and build cardiovascular endurance in 45 explosive minutes.</p>
+    </div>
+    <div class="service-card reveal reveal-delay-1">
+      <span class="service-num">04</span>
+      <span class="service-icon">🧘</span>
+      <h3>Recovery & Mobility</h3>
+      <p>Yoga, stretching, and active recovery protocols that keep your body performing at peak levels day after day.</p>
+    </div>
+    <div class="service-card reveal reveal-delay-2">
+      <span class="service-num">05</span>
+      <span class="service-icon">🏃</span>
+      <h3>Athletic Performance</h3>
+      <p>Sport-specific training for athletes who demand more. Speed, agility, explosiveness — engineered to win.</p>
+    </div>
+    <div class="service-card reveal reveal-delay-3">
+      <span class="service-num">06</span>
+      <span class="service-icon">🍎</span>
+      <h3>Nutrition Coaching</h3>
+      <p>Personalized macronutrient plans and supplement guidance backed by certified sports nutritionists.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TRAINERS -->
+<section id="trainers">
+  <div class="reveal" style="text-align:center;">
+    <div class="section-tag" style="justify-content:center;">The Team</div>
+    <h2 class="section-title">Meet Your <span class="accent">Coaches</span></h2>
+  </div>
+  <div class="trainers-grid">
+    <div class="trainer-card reveal reveal-delay-1">
+      <div class="trainer-inner">
+        <div class="trainer-front">
+          <div class="trainer-avatar">🦅</div>
+          <div class="trainer-info">
+            <div class="trainer-name">Marcus Steel</div>
+            <div class="trainer-spec">Strength & Powerlifting</div>
+          </div>
+        </div>
+        <div class="trainer-back">
+          <h4>Marcus Steel</h4>
+          <p>National powerlifting champion with 12 years of competitive experience and 500+ clients transformed.</p>
+          <div class="trainer-stats">
+            <div class="t-stat"><strong>12</strong><span>Yrs Exp</span></div>
+            <div class="t-stat"><strong>500+</strong><span>Clients</span></div>
+            <div class="t-stat"><strong>3x</strong><span>Champion</span></div>
+          </div>
+          <a href="#" class="btn-primary" style="font-size:0.8rem;padding:0.7rem 2rem;margin-top:0.5rem;">Book Session</a>
+        </div>
+      </div>
+    </div>
+    <div class="trainer-card reveal reveal-delay-2">
+      <div class="trainer-inner">
+        <div class="trainer-front">
+          <div class="trainer-avatar">🐆</div>
+          <div class="trainer-info">
+            <div class="trainer-name">Zara Voss</div>
+            <div class="trainer-spec">Combat & HIIT</div>
+          </div>
+        </div>
+        <div class="trainer-back">
+          <h4>Zara Voss</h4>
+          <p>Professional MMA fighter turned elite trainer. 8 years coaching combat sports and metabolic conditioning.</p>
+          <div class="trainer-stats">
+            <div class="t-stat"><strong>8</strong><span>Yrs Exp</span></div>
+            <div class="t-stat"><strong>300+</strong><span>Clients</span></div>
+            <div class="t-stat"><strong>Pro</strong><span>Fighter</span></div>
+          </div>
+          <a href="#" class="btn-primary" style="font-size:0.8rem;padding:0.7rem 2rem;margin-top:0.5rem;">Book Session</a>
+        </div>
+      </div>
+    </div>
+    <div class="trainer-card reveal reveal-delay-3">
+      <div class="trainer-inner">
+        <div class="trainer-front">
+          <div class="trainer-avatar">🦁</div>
+          <div class="trainer-info">
+            <div class="trainer-name">Dante Cruz</div>
+            <div class="trainer-spec">Athletic Performance</div>
+          </div>
+        </div>
+        <div class="trainer-back">
+          <h4>Dante Cruz</h4>
+          <p>Former NFL strength coach bringing professional-level performance protocols to everyday athletes.</p>
+          <div class="trainer-stats">
+            <div class="t-stat"><strong>15</strong><span>Yrs Exp</span></div>
+            <div class="t-stat"><strong>NFL</strong><span>Alumni</span></div>
+            <div class="t-stat"><strong>800+</strong><span>Athletes</span></div>
+          </div>
+          <a href="#" class="btn-primary" style="font-size:0.8rem;padding:0.7rem 2rem;margin-top:0.5rem;">Book Session</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="reveal" style="text-align:center;">
+    <div class="section-tag" style="justify-content:center;">Membership</div>
+    <h2 class="section-title">Choose Your <span class="accent">Plan</span></h2>
+  </div>
+  <div class="pricing-grid">
+    <div class="pricing-card reveal reveal-delay-1">
+      <div class="plan-name">Warrior</div>
+      <div class="plan-price"><span>$</span>49</div>
+      <div class="plan-period">per month</div>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li>Full gym access (6AM–10PM)</li>
+        <li>8 group classes / month</li>
+        <li>Locker room access</li>
+        <li>Fitness assessment</li>
+        <li>Mobile app access</li>
+      </ul>
+      <a href="#" class="btn-ghost" style="display:block;text-align:center;padding:1rem;" onclick="handlePlanClick(event,'Warrior',49)">Get Started</a>
+    </div>
+    <div class="pricing-card featured reveal reveal-delay-2">
+      <div class="featured-badge">Most Popular</div>
+      <div class="plan-name">Champion</div>
+      <div class="plan-price"><span>$</span>89</div>
+      <div class="plan-period">per month</div>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li>24/7 unlimited access</li>
+        <li>Unlimited group classes</li>
+        <li>4 PT sessions / month</li>
+        <li>Nutrition consultation</li>
+        <li>Priority class booking</li>
+        <li>Sauna & recovery suite</li>
+      </ul>
+      <a href="#" class="btn-primary" style="display:block;text-align:center;" onclick="handlePlanClick(event,'Champion',89)">Get Started</a>
+    </div>
+    <div class="pricing-card reveal reveal-delay-3">
+      <div class="plan-name">Legend</div>
+      <div class="plan-price"><span>$</span>149</div>
+      <div class="plan-period">per month</div>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li>Everything in Champion</li>
+        <li>Unlimited PT sessions</li>
+        <li>Custom meal plans</li>
+        <li>Competition coaching</li>
+        <li>VIP lounge access</li>
+        <li>Guest passes (4/mo)</li>
+        <li>Merchandise discount 20%</li>
+      </ul>
+      <a href="#" class="btn-ghost" style="display:block;text-align:center;padding:1rem;" onclick="handlePlanClick(event,'Legend',149)">Get Started</a>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE 2 -->
+<div class="marquee-band" style="background: #0d0d0d; border-color: rgba(255,69,0,0.2);">
+  <div class="marquee-track" id="marqueeTrack2" style="animation-direction: reverse;"></div>
+</div>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="cta-bg"></div>
+  <div class="reveal">
+    <div class="section-tag" style="justify-content:center;">Ready?</div>
+    <h2 class="section-title">Start Your<br><span class="accent">Transformation</span></h2>
+    <p>Your first 7 days are completely free. No contracts, no commitments — just results. Join 12,000 members who chose to become legends.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <a href="#" class="btn-primary" style="font-size:1rem;padding:1.2rem 3.5rem;">Claim Free Week</a>
+      <a href="#" class="btn-ghost" style="font-size:1rem;padding:1.2rem 3.5rem;">Tour the Facility</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">
+    <a href="#" class="logo">IRON<span>CLAD</span></a>
+    <p>Built for those who refuse to be ordinary. World-class facilities and elite coaching since 2015.</p>
+  </div>
+  <div class="footer-col">
+    <h4>Programs</h4>
+    <ul>
+      <li><a href="#">Strength Training</a></li>
+      <li><a href="#">Combat Sports</a></li>
+      <li><a href="#">HIIT Classes</a></li>
+      <li><a href="#">Recovery</a></li>
+      <li><a href="#">Nutrition</a></li>
+    </ul>
+  </div>
+  <div class="footer-col">
+    <h4>Company</h4>
+    <ul>
+      <li><a href="#">About Us</a></li>
+      <li><a href="#">Our Coaches</a></li>
+      <li><a href="#">Locations</a></li>
+      <li><a href="#">Blog</a></li>
+      <li><a href="#">Careers</a></li>
+    </ul>
+  </div>
+  <div class="footer-col">
+    <h4>Support</h4>
+    <ul>
+      <li><a href="#">Contact</a></li>
+      <li><a href="#">FAQ</a></li>
+      <li><a href="#">Privacy Policy</a></li>
+      <li><a href="#">Terms of Service</a></li>
+      <li><a href="#">Schedule a Tour</a></li>
+    </ul>
+  </div>
+</footer>
+<div class="footer-bottom">
+  <span>© 2026 IRONCLAD GYM. All rights reserved.</span>
+  <span>Forging Champions Since 2015</span>
+  <button onclick="openAdminPanel()" style="background:none;border:none;font-family:'Barlow Condensed',sans-serif;font-size:.65rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:rgba(176,190,197,.25);cursor:none;transition:color .2s;" onmouseover="this.style.color='var(--fire)'" onmouseout="this.style.color='rgba(176,190,197,.25)'">Staff Portal ⬡</button>
+</div>
+
+<!-- TOAST -->
+<div class="ic-toast" id="ic-toast"></div>
+
+<!-- =====================================================
+     AUTH MODAL (Login / Signup / Payment)
+===================================================== -->
+<div class="ic-overlay" id="auth-overlay">
+  <div class="ic-modal" id="auth-modal">
+    <button class="ic-modal-close" onclick="closeAuthModal()">✕</button>
+
+    <!-- LOGIN SCREEN -->
+    <div id="auth-screen-login">
+      <div class="ic-modal-logo">IRON<span>CLAD</span></div>
+      <div class="ic-modal-subtitle">Member Access</div>
+      <div class="ic-modal-title">Welcome<br>Back.</div>
+      <div class="ic-form-group">
+        <label>Email Address</label>
+        <input type="email" class="ic-input" id="login-email" placeholder="you@ironclad.com" />
+      </div>
+      <div class="ic-form-group">
+        <label>Password</label>
+        <input type="password" class="ic-input" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+      </div>
+      <div class="ic-error" id="login-err"></div>
+      <button class="btn-primary" style="width:100%;text-align:center;padding:1rem;" onclick="doLogin()">Enter The Forge →</button>
+      <div class="ic-form-switch">
+        No account? <button onclick="switchAuthScreen('signup')">Create one free</button>
+      </div>
+      <div class="ic-form-switch" style="margin-top:.5rem;font-size:.7rem;color:rgba(176,190,197,.35);">
+        Demo: use any registered email + password
+      </div>
+    </div>
+
+    <!-- SIGNUP SCREEN -->
+    <div id="auth-screen-signup" style="display:none;">
+      <div class="ic-modal-logo">IRON<span>CLAD</span></div>
+      <div class="ic-modal-subtitle">Create Account</div>
+      <div class="ic-modal-title">Join The<br>Forge.</div>
+      <div class="ic-form-row">
+        <div class="ic-form-group">
+          <label>First Name</label>
+          <input type="text" class="ic-input" id="su-first" placeholder="Alex" />
+        </div>
+        <div class="ic-form-group">
+          <label>Last Name</label>
+          <input type="text" class="ic-input" id="su-last" placeholder="Cruz" />
+        </div>
+      </div>
+      <div class="ic-form-group">
+        <label>Email Address</label>
+        <input type="email" class="ic-input" id="su-email" placeholder="you@ironclad.com" />
+      </div>
+      <div class="ic-form-group">
+        <label>Phone</label>
+        <input type="tel" class="ic-input" id="su-phone" placeholder="+1 (555) 000-0000" />
+      </div>
+      <div class="ic-form-group">
+        <label>Password</label>
+        <input type="password" class="ic-input" id="su-pass" placeholder="Min. 6 characters" />
+      </div>
+      <div class="ic-form-group">
+        <label>Fitness Goal</label>
+        <select class="ic-input ic-select" id="su-goal">
+          <option>Build Muscle</option>
+          <option>Lose Weight</option>
+          <option>Athletic Performance</option>
+          <option>General Fitness</option>
+          <option>Combat Sports</option>
+        </select>
+      </div>
+      <div class="ic-error" id="signup-err"></div>
+      <button class="btn-primary" style="width:100%;text-align:center;padding:1rem;" onclick="doSignup()">Forge My Account →</button>
+      <div class="ic-form-switch">
+        Already a member? <button onclick="switchAuthScreen('login')">Log in</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     PAYMENT MODAL
+===================================================== -->
+<div class="ic-overlay" id="payment-overlay">
+  <div class="ic-modal" id="payment-modal">
+    <button class="ic-modal-close" onclick="closePaymentModal()">✕</button>
+
+    <!-- STEP 1: Plan Confirm -->
+    <div id="pay-screen-plan">
+      <div class="ic-modal-logo">IRON<span>CLAD</span></div>
+      <div class="ic-modal-subtitle">Membership Checkout</div>
+      <div class="ic-modal-title" id="pay-plan-title">Champion Plan</div>
+      <div class="step-indicator">
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+        <span class="step-label">Plan → Payment → Confirm</span>
+      </div>
+      <div class="ic-plan-summary" id="pay-plan-summary"></div>
+      <div class="ic-form-group">
+        <label>Billing Cycle</label>
+        <select class="ic-input ic-select" id="pay-billing-cycle" onchange="updateBillingCycle()">
+          <option value="monthly">Monthly Billing</option>
+          <option value="annual">Annual Billing (Save 20%)</option>
+        </select>
+      </div>
+      <div class="ic-form-group">
+        <label>Promo Code</label>
+        <input type="text" class="ic-input" id="pay-promo" placeholder="FORGE7FREE" />
+      </div>
+      <button class="btn-primary" style="width:100%;text-align:center;padding:1rem;margin-top:.5rem;" onclick="goToPayStep('payment')">Continue to Payment →</button>
+    </div>
+
+    <!-- STEP 2: Card Payment -->
+    <div id="pay-screen-payment" style="display:none;">
+      <div class="ic-modal-title">Payment<br>Details.</div>
+      <div class="step-indicator">
+        <div class="step-dot"></div>
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+        <span class="step-label">Plan → Payment → Confirm</span>
+      </div>
+      <div class="card-icons">
+        <span class="card-icon">VISA</span>
+        <span class="card-icon">MC</span>
+        <span class="card-icon">AMEX</span>
+        <span class="card-icon">DISCOVER</span>
+      </div>
+      <div class="ic-form-group">
+        <label>Cardholder Name</label>
+        <input type="text" class="ic-input" id="pay-card-name" placeholder="Alex Cruz" />
+      </div>
+      <div class="ic-form-group">
+        <label>Card Number</label>
+        <input type="text" class="ic-input" id="pay-card-num" placeholder="4242  4242  4242  4242" maxlength="19" oninput="formatCardNum(this)" />
+      </div>
+      <div class="card-row">
+        <div class="ic-form-group">
+          <label>Expiry</label>
+          <input type="text" class="ic-input" id="pay-expiry" placeholder="MM / YY" maxlength="7" oninput="formatExpiry(this)" />
+        </div>
+        <div class="ic-form-group">
+          <label>CVV</label>
+          <input type="text" class="ic-input" id="pay-cvv" placeholder="•••" maxlength="4" />
+        </div>
+        <div class="ic-form-group">
+          <label>ZIP</label>
+          <input type="text" class="ic-input" id="pay-zip" placeholder="10001" maxlength="5" />
+        </div>
+      </div>
+      <div class="ic-error" id="pay-err"></div>
+      <div class="payment-secure">Secured by 256-bit SSL encryption</div>
+      <button class="btn-primary" style="width:100%;text-align:center;padding:1rem;margin-top:1rem;" onclick="processPayment()">Process Payment →</button>
+      <div class="ic-form-switch"><button onclick="goToPayStep('plan')">← Back to Plan</button></div>
+    </div>
+
+    <!-- STEP 3: Processing -->
+    <div id="pay-screen-processing" style="display:none;text-align:center;padding:2rem 0;">
+      <div style="font-size:3rem;margin-bottom:1.5rem;animation:spin 1s linear infinite;">⚙️</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:.08em;color:var(--chrome);margin-bottom:.5rem;">Processing</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;letter-spacing:.15em;color:var(--steel);">Securing your membership…</div>
+    </div>
+
+    <!-- STEP 4: Success -->
+    <div id="pay-screen-success" style="display:none;">
+      <div class="ic-success-msg">
+        <div class="ic-success-icon">🏆</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:.06em;color:var(--chrome);line-height:1;margin-bottom:.5rem;">You're In.</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:.8rem;letter-spacing:.18em;text-transform:uppercase;color:var(--fire);margin-bottom:1.5rem;">Welcome to IRONCLAD</div>
+        <div id="pay-success-detail" style="font-size:.9rem;color:var(--steel);line-height:1.7;margin-bottom:2rem;"></div>
+        <button class="btn-primary" style="padding:1rem 2.5rem;" onclick="closePaymentModal();openDashboard()">Go to My Dashboard →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     MEMBER DASHBOARD MODAL
+===================================================== -->
+<div class="ic-overlay" id="dashboard-overlay">
+  <div class="ic-modal ic-dashboard-modal">
+    <button class="ic-modal-close" onclick="closeDashboard()">✕</button>
+    <div class="dash-grid">
+      <div class="dash-sidebar">
+        <div class="dash-avatar" id="dash-avatar">A</div>
+        <div class="dash-name" id="dash-name">Member</div>
+        <div class="dash-plan" id="dash-plan">Warrior Plan</div>
+        <ul class="dash-nav">
+          <li><button class="active" onclick="switchDashTab('overview',this)">📊 Overview</button></li>
+          <li><button onclick="switchDashTab('schedule',this)">📅 Schedule</button></li>
+          <li><button onclick="switchDashTab('billing',this)">💳 Billing</button></li>
+          <li><button onclick="switchDashTab('profile',this)">👤 Profile</button></li>
+        </ul>
+      </div>
+      <div class="dash-content">
+        <!-- Overview Tab -->
+        <div class="dash-tab active" id="dtab-overview">
+          <div class="dash-section-title">MY DASHBOARD</div>
+          <div class="dash-stat-row">
+            <div class="dash-stat">
+              <div class="dash-stat-val" id="d-classes">0</div>
+              <div class="dash-stat-lbl">Classes Booked</div>
+            </div>
+            <div class="dash-stat">
+              <div class="dash-stat-val" id="d-streak">0</div>
+              <div class="dash-stat-lbl">Day Streak 🔥</div>
+            </div>
+            <div class="dash-stat">
+              <div class="dash-stat-val" id="d-pts">0</div>
+              <div class="dash-stat-lbl">Forge Points</div>
+            </div>
+          </div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--steel);margin-bottom:.8rem;">Next Up</div>
+          <div class="dash-schedule-item">
+            <div class="dash-class-time">7:00</div>
+            <div><div class="dash-class-name">HIIT Conditioning</div><div class="dash-class-coach">with Zara Voss</div></div>
+            <div class="dash-class-badge">Tomorrow</div>
+          </div>
+          <div class="dash-schedule-item">
+            <div class="dash-class-time">6:30</div>
+            <div><div class="dash-class-name">Strength Foundations</div><div class="dash-class-coach">with Marcus Steel</div></div>
+            <div class="dash-class-badge">Thu</div>
+          </div>
+        </div>
+        <!-- Schedule Tab -->
+        <div class="dash-tab" id="dtab-schedule">
+          <div class="dash-section-title">THIS WEEK</div>
+          <div class="dash-schedule-item"><div class="dash-class-time">6:00</div><div><div class="dash-class-name">Strength Training</div><div class="dash-class-coach">Marcus Steel · Studio A</div></div><div class="dash-class-badge">Mon</div></div>
+          <div class="dash-schedule-item"><div class="dash-class-time">7:00</div><div><div class="dash-class-name">HIIT Conditioning</div><div class="dash-class-coach">Zara Voss · Main Floor</div></div><div class="dash-class-badge">Tue</div></div>
+          <div class="dash-schedule-item"><div class="dash-class-time">6:30</div><div><div class="dash-class-name">Combat Fundamentals</div><div class="dash-class-coach">Zara Voss · Ring</div></div><div class="dash-class-badge">Wed</div></div>
+          <div class="dash-schedule-item"><div class="dash-class-time">6:00</div><div><div class="dash-class-name">Strength Foundations</div><div class="dash-class-coach">Marcus Steel · Studio A</div></div><div class="dash-class-badge">Thu</div></div>
+          <div class="dash-schedule-item"><div class="dash-class-time">9:00</div><div><div class="dash-class-name">Athletic Performance</div><div class="dash-class-coach">Dante Cruz · Track</div></div><div class="dash-class-badge">Sat</div></div>
+        </div>
+        <!-- Billing Tab -->
+        <div class="dash-tab" id="dtab-billing">
+          <div class="dash-section-title">BILLING</div>
+          <div class="dash-billing-row"><span>Current Plan</span><span id="b-plan">Champion</span></div>
+          <div class="dash-billing-row"><span>Monthly Cost</span><span id="b-cost">$89/mo</span></div>
+          <div class="dash-billing-row"><span>Next Billing Date</span><span>June 9, 2026</span></div>
+          <div class="dash-billing-row"><span>Payment Method</span><span>•••• •••• •••• 4242</span></div>
+          <div class="dash-billing-row"><span>Status</span><span style="color:#22d3a5;">Active ✓</span></div>
+          <div style="margin-top:1.2rem;display:flex;gap:.8rem;flex-wrap:wrap;">
+            <button class="btn-ghost" style="font-size:.8rem;padding:.7rem 1.5rem;" onclick="showToast('Plan management coming soon')">Upgrade Plan</button>
+            <button class="btn-ghost" style="font-size:.8rem;padding:.7rem 1.5rem;border-color:rgba(255,68,102,.3);color:#ff4466;" onclick="showToast('Cancellation processed. We hate to see you go.')">Cancel</button>
+          </div>
+        </div>
+        <!-- Profile Tab -->
+        <div class="dash-tab" id="dtab-profile">
+          <div class="dash-section-title">PROFILE</div>
+          <div class="ic-form-group"><label>First Name</label><input type="text" class="ic-input" id="prof-first" /></div>
+          <div class="ic-form-group"><label>Last Name</label><input type="text" class="ic-input" id="prof-last" /></div>
+          <div class="ic-form-group"><label>Email</label><input type="email" class="ic-input" id="prof-email" /></div>
+          <div class="ic-form-group"><label>Fitness Goal</label>
+            <select class="ic-input ic-select" id="prof-goal">
+              <option>Build Muscle</option><option>Lose Weight</option><option>Athletic Performance</option><option>General Fitness</option><option>Combat Sports</option>
+            </select>
+          </div>
+          <button class="btn-primary" style="padding:.9rem 2.5rem;" onclick="saveProfile()">Save Changes →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     ADMIN PANEL
+===================================================== -->
+<div class="admin-overlay" id="admin-overlay"></div>
+<div class="admin-panel" id="admin-panel">
+
+  <!-- Admin Login -->
+  <div class="admin-login-wrap" id="admin-login-wrap">
+    <div class="admin-login-box">
+      <div class="admin-login-logo">IRON<span>CLAD</span></div>
+      <div class="admin-login-subtitle">Staff Portal</div>
+      <div class="ic-form-group"><label>Username</label><input type="text" class="ic-input" id="admin-user" placeholder="admin" /></div>
+      <div class="ic-form-group"><label>Password</label><input type="password" class="ic-input" id="admin-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAdminLogin()" /></div>
+      <div class="admin-login-err" id="admin-login-err"></div>
+      <button class="btn-primary" style="width:100%;text-align:center;padding:1rem;" onclick="doAdminLogin()">Access Dashboard →</button>
+      <div style="text-align:center;margin-top:1.2rem;font-family:'Barlow Condensed',sans-serif;font-size:.65rem;letter-spacing:.15em;color:rgba(176,190,197,.3);">Use: admin / forge2026</div>
+      <div style="text-align:center;margin-top:1rem;">
+        <button onclick="closeAdminPanel()" style="background:none;border:none;font-family:'Barlow Condensed',sans-serif;font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(176,190,197,.3);cursor:none;transition:color .2s;" onmouseover="this.style.color='var(--fire)'" onmouseout="this.style.color='rgba(176,190,197,.3)'">← Exit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Dashboard -->
+  <div id="admin-dashboard-wrap" style="display:none;width:100%;height:100%;display:none;flex-direction:row;">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-logo">IRON<span>CLAD</span></div>
+      <div class="admin-sidebar-tag">Staff Dashboard</div>
+      <ul class="admin-nav">
+        <li><button class="admin-nav-btn active" onclick="switchAdminTab('overview',this)">◈ Overview</button></li>
+        <li><button class="admin-nav-btn" onclick="switchAdminTab('members',this)">◉ Members</button></li>
+        <li><button class="admin-nav-btn" onclick="switchAdminTab('bookings',this)">◇ Bookings</button></li>
+        <li><button class="admin-nav-btn" onclick="switchAdminTab('revenue',this)">◎ Revenue</button></li>
+        <li><button class="admin-nav-btn" onclick="switchAdminTab('coaches',this)">◐ Coaches</button></li>
+      </ul>
+      <div class="admin-sidebar-foot">
+        <button class="admin-logout-btn" onclick="adminLogout()">Log Out</button>
+      </div>
+    </aside>
+    <!-- Main -->
+    <main class="admin-main">
+      <div class="admin-topbar">
+        <div class="admin-page-title" id="admin-page-title">Overview</div>
+        <button class="admin-close-btn" onclick="closeAdminPanel()">✕ Close Panel</button>
+      </div>
+
+      <!-- OVERVIEW TAB -->
+      <div class="admin-tab active" id="atab-overview">
+        <div class="admin-kpi-grid">
+          <div class="admin-kpi"><div class="admin-kpi-label">Monthly Revenue</div><div class="admin-kpi-val">$94.2K</div><div class="admin-kpi-change up">↑ 11.3% vs last month</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-label">Active Members</div><div class="admin-kpi-val" id="a-member-count">--</div><div class="admin-kpi-change up">↑ 4.2% this month</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-label">Classes This Week</div><div class="admin-kpi-val">142</div><div class="admin-kpi-change up">↑ 8 vs last week</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-label">Avg. Retention</div><div class="admin-kpi-val">87%</div><div class="admin-kpi-change down">↓ 1.2% this month</div></div>
+        </div>
+        <div class="admin-card">
+          <div class="admin-card-head"><div class="admin-card-title">Revenue — Last 7 Months</div></div>
+          <div class="admin-rev-chart" id="admin-rev-chart"></div>
+        </div>
+        <div class="admin-card">
+          <div class="admin-card-head"><div class="admin-card-title">Recent Signups</div></div>
+          <table class="admin-table" id="admin-recent-table"></table>
+        </div>
+      </div>
+
+      <!-- MEMBERS TAB -->
+      <div class="admin-tab" id="atab-members">
+        <div class="admin-card">
+          <div class="admin-card-head">
+            <div class="admin-card-title">All Members</div>
+            <button class="admin-action-btn primary" onclick="showToast('Export to CSV — coming soon')">Export CSV</button>
+          </div>
+          <table class="admin-table" id="admin-members-table"></table>
+        </div>
+      </div>
+
+      <!-- BOOKINGS TAB -->
+      <div class="admin-tab" id="atab-bookings">
+        <div class="admin-card">
+          <div class="admin-card-head">
+            <div class="admin-card-title">Class Bookings</div>
+            <div style="display:flex;gap:.5rem;">
+              <button class="admin-action-btn active primary" onclick="filterBookings('all',this)">All</button>
+              <button class="admin-action-btn" onclick="filterBookings('confirmed',this)">Confirmed</button>
+              <button class="admin-action-btn" onclick="filterBookings('pending',this)">Pending</button>
+              <button class="admin-action-btn" onclick="filterBookings('cancelled',this)">Cancelled</button>
+            </div>
+          </div>
+          <table class="admin-table" id="admin-bookings-table"></table>
+        </div>
+      </div>
+
+      <!-- REVENUE TAB -->
+      <div class="admin-tab" id="atab-revenue">
+        <div class="admin-kpi-grid" style="grid-template-columns:repeat(3,1fr);">
+          <div class="admin-kpi"><div class="admin-kpi-label">Warrior Subs</div><div class="admin-kpi-val">$12.3K</div><div class="admin-kpi-change">251 members × $49</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-label">Champion Subs</div><div class="admin-kpi-val">$58.9K</div><div class="admin-kpi-change">662 members × $89</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-label">Legend Subs</div><div class="admin-kpi-val">$22.9K</div><div class="admin-kpi-change">154 members × $149</div></div>
+        </div>
+        <div class="admin-card">
+          <div class="admin-card-head"><div class="admin-card-title">Payment History</div></div>
+          <table class="admin-table" id="admin-payments-table"></table>
+        </div>
+      </div>
+
+      <!-- COACHES TAB -->
+      <div class="admin-tab" id="atab-coaches">
+        <div class="admin-card">
+          <div class="admin-card-head"><div class="admin-card-title">Coach Roster</div><button class="admin-action-btn primary" onclick="showToast('Add coach — coming soon')">+ Add Coach</button></div>
+          <table class="admin-table" id="admin-coaches-table"></table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<style>
+@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+</style>
+
+<script>
+// ---- CURSOR ----
+const cursor = document.getElementById('cursor');
+const ring   = document.getElementById('cursor-ring');
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; cursor.style.left = mx + 'px'; cursor.style.top = my + 'px'; });
+(function animRing() {
+  rx += (mx - rx) * 0.12;
+  ry += (my - ry) * 0.12;
+  ring.style.left = rx + 'px';
+  ring.style.top  = ry + 'px';
+  requestAnimationFrame(animRing);
+})();
+document.querySelectorAll('a,button,.service-card,.trainer-card,.pricing-card').forEach(el => {
+  el.addEventListener('mouseenter', () => { cursor.style.transform = 'translate(-50%,-50%) scale(2.5)'; cursor.style.background = '#ff8c00'; });
+  el.addEventListener('mouseleave', () => { cursor.style.transform = 'translate(-50%,-50%) scale(1)'; cursor.style.background = 'var(--fire)'; });
+});
+
+// ---- THREE.JS PARTICLE BG ----
+const canvas = document.getElementById('bg-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 80;
+
+// Particles
+const geo = new THREE.BufferGeometry();
+const N = 2200;
+const pos = new Float32Array(N * 3);
+const spd = new Float32Array(N);
+for (let i = 0; i < N; i++) {
+  pos[i*3]   = (Math.random() - 0.5) * 240;
+  pos[i*3+1] = (Math.random() - 0.5) * 180;
+  pos[i*3+2] = (Math.random() - 0.5) * 120;
+  spd[i]     = Math.random() * 0.015 + 0.005;
+}
+geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+const mat = new THREE.PointsMaterial({ color: 0xff4500, size: 0.5, transparent: true, opacity: 0.55 });
+const pts = new THREE.Points(geo, mat);
+scene.add(pts);
+
+// Floating wireframe rings
+const rings = [];
+for (let i = 0; i < 5; i++) {
+  const r = new THREE.Mesh(
+    new THREE.TorusGeometry(12 + i * 7, 0.15, 8, 64),
+    new THREE.MeshBasicMaterial({ color: 0xff4500, wireframe: true, transparent: true, opacity: 0.07 + i * 0.02 })
+  );
+  r.rotation.x = Math.random() * Math.PI;
+  r.rotation.y = Math.random() * Math.PI;
+  r.position.set((Math.random()-0.5)*80, (Math.random()-0.5)*60, (Math.random()-0.5)*40);
+  scene.add(r);
+  rings.push({ mesh: r, rx: (Math.random()-0.5)*0.004, ry: (Math.random()-0.5)*0.004 });
+}
+
+// Wireframe icosahedron
+const icoMesh = new THREE.Mesh(
+  new THREE.IcosahedronGeometry(22, 1),
+  new THREE.MeshBasicMaterial({ color: 0xff4500, wireframe: true, transparent: true, opacity: 0.05 })
+);
+scene.add(icoMesh);
+
+let mouseX = 0, mouseY = 0;
+document.addEventListener('mousemove', e => {
+  mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+  mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+});
+
+function animate() {
+  requestAnimationFrame(animate);
+  const p = geo.attributes.position.array;
+  for (let i = 0; i < N; i++) {
+    p[i*3+1] += spd[i];
+    if (p[i*3+1] > 90) p[i*3+1] = -90;
+  }
+  geo.attributes.position.needsUpdate = true;
+  pts.rotation.y += 0.0005;
+  icoMesh.rotation.x += 0.001;
+  icoMesh.rotation.y += 0.002;
+  rings.forEach(r => { r.mesh.rotation.x += r.rx; r.mesh.rotation.y += r.ry; });
+  camera.position.x += (mouseX * 15 - camera.position.x) * 0.015;
+  camera.position.y += (-mouseY * 10 - camera.position.y) * 0.015;
+  camera.lookAt(scene.position);
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ---- MARQUEE ----
+const words1 = ['Strength', 'Discipline', 'Performance', 'Power', 'Endurance', 'Champions', 'Results', 'Elite'];
+const words2 = ['No Limits', 'Push Harder', 'Break Records', 'Train Smart', 'Stay Hungry', 'Rise Up'];
+function fillMarquee(id, words) {
+  const el = document.getElementById(id);
+  const repeated = [...words, ...words, ...words, ...words].map(w => `<span class="marquee-item">${w}</span>`).join('');
+  el.innerHTML = repeated + repeated;
+}
+fillMarquee('marqueeTrack', words1);
+fillMarquee('marqueeTrack2', words2);
+
+// ---- SCROLL REVEAL ----
+const revealEls = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+}, { threshold: 0.12 });
+revealEls.forEach(el => io.observe(el));
+
+// ---- STATS COUNTER ----
+const statEls = document.querySelectorAll('.stat-num[data-target]');
+const sio = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el = e.target;
+    const parent = el.closest('.stat-item');
+    parent.classList.add('visible');
+    const target = +el.dataset.target;
+    let cur = 0;
+    const step = target / 60;
+    const tick = () => {
+      cur = Math.min(cur + step, target);
+      el.textContent = (cur >= 1000 ? Math.floor(cur/1000) + 'K+' : Math.floor(cur) + (target > 50 ? '+' : ''));
+      if (cur < target) requestAnimationFrame(tick);
+    };
+    tick();
+    sio.unobserve(el);
+  });
+}, { threshold: 0.4 });
+statEls.forEach(el => sio.observe(el));
+
+// ---- PARALLAX HERO ----
+window.addEventListener('scroll', () => {
+  const y = window.scrollY;
+  const heroContent = document.querySelector('.hero-content');
+  if (heroContent) heroContent.style.transform = `translateY(${y * 0.25}px)`;
+  const heroDeco = document.querySelector('.hero-3d-deco');
+  if (heroDeco) heroDeco.style.transform = `translateY(calc(-50% + ${y * 0.4}px))`;
+});
+
+/* ==============================================================
+   STATE & DATA
+============================================================== */
+let currentUser   = JSON.parse(localStorage.getItem('ic_user') || 'null');
+let registeredUsers = JSON.parse(localStorage.getItem('ic_users') || '[]');
+let selectedPlan  = { name:'Champion', price:89 };
+let bookingFilter = 'all';
+
+const ADMIN_MEMBERS = [
+  { name:'Marcus Webb',   email:'marcus@iron.co',  plan:'Champion', joined:'Jan 12, 2026', status:'active',    streak:22 },
+  { name:'Yuki Tanaka',   email:'yuki@forge.jp',   plan:'Legend',   joined:'Feb 3, 2026',  status:'active',    streak:41 },
+  { name:'Sofia Reyes',   email:'sofia@gym.co',    plan:'Warrior',  joined:'Mar 18, 2026', status:'active',    streak:8  },
+  { name:'Devon King',    email:'devon@fit.io',    plan:'Champion', joined:'Apr 1, 2026',  status:'active',    streak:14 },
+  { name:'Priya Nair',    email:'priya@mode.in',   plan:'Legend',   joined:'Apr 22, 2026', status:'active',    streak:30 },
+  { name:'James Lorca',   email:'james@larc.co',   plan:'Warrior',  joined:'May 1, 2026',  status:'pending',   streak:3  },
+  { name:'Aria Solis',    email:'aria@void.co',    plan:'Champion', joined:'May 5, 2026',  status:'active',    streak:5  },
+  { name:'Noah Park',     email:'noah@pixel.com',  plan:'Warrior',  joined:'May 7, 2026',  status:'cancelled', streak:0  },
+];
+
+const ADMIN_BOOKINGS = [
+  { member:'Marcus Webb',  cls:'Strength Training',     coach:'Marcus Steel', date:'May 9 · 6:00AM',  status:'confirmed' },
+  { member:'Yuki Tanaka',  cls:'HIIT Conditioning',     coach:'Zara Voss',    date:'May 9 · 7:00AM',  status:'confirmed' },
+  { member:'Sofia Reyes',  cls:'Combat Fundamentals',   coach:'Zara Voss',    date:'May 9 · 8:00AM',  status:'pending'   },
+  { member:'Devon King',   cls:'Athletic Performance',  coach:'Dante Cruz',   date:'May 10 · 6:30AM', status:'confirmed' },
+  { member:'Priya Nair',   cls:'Nutrition Coaching',    coach:'Dr. Reed',     date:'May 10 · 11:00AM',status:'confirmed' },
+  { member:'James Lorca',  cls:'Strength Training',     coach:'Marcus Steel', date:'May 11 · 6:00AM', status:'pending'   },
+  { member:'Aria Solis',   cls:'Recovery & Mobility',   coach:'Lea Park',     date:'May 11 · 9:00AM', status:'confirmed' },
+  { member:'Noah Park',    cls:'HIIT Conditioning',     coach:'Zara Voss',    date:'May 8 · 7:00AM',  status:'cancelled' },
+];
+
+const ADMIN_PAYMENTS = [
+  { id:'#IC-9901', member:'Yuki Tanaka',  plan:'Legend',   amount:'$149', date:'May 1, 2026',  status:'paid'    },
+  { id:'#IC-9900', member:'Marcus Webb',  plan:'Champion', amount:'$89',  date:'May 1, 2026',  status:'paid'    },
+  { id:'#IC-9899', member:'Devon King',   plan:'Champion', amount:'$89',  date:'May 1, 2026',  status:'paid'    },
+  { id:'#IC-9898', member:'Priya Nair',   plan:'Legend',   amount:'$149', date:'May 1, 2026',  status:'paid'    },
+  { id:'#IC-9897', member:'Sofia Reyes',  plan:'Warrior',  amount:'$49',  date:'May 1, 2026',  status:'paid'    },
+  { id:'#IC-9896', member:'James Lorca',  plan:'Warrior',  amount:'$49',  date:'May 1, 2026',  status:'pending' },
+  { id:'#IC-9895', member:'Aria Solis',   plan:'Champion', amount:'$89',  date:'May 1, 2026',  status:'paid'    },
+  { id:'#IC-9894', member:'Noah Park',    plan:'Warrior',  amount:'$49',  date:'Apr 1, 2026',  status:'refunded'},
+];
+
+const ADMIN_COACHES = [
+  { name:'Marcus Steel', spec:'Strength & Powerlifting', classes:24, rating:'4.9', clients:500, status:'active' },
+  { name:'Zara Voss',    spec:'Combat & HIIT',           classes:31, rating:'5.0', clients:300, status:'active' },
+  { name:'Dante Cruz',   spec:'Athletic Performance',    classes:18, rating:'4.8', clients:800, status:'active' },
+  { name:'Lea Park',     spec:'Recovery & Mobility',     classes:20, rating:'4.7', clients:220, status:'active' },
+  { name:'Dr. Reed',     spec:'Nutrition Coaching',      classes:12, rating:'4.9', clients:180, status:'active' },
+];
+
+const REV_DATA = [
+  { m:'Nov', v:68 }, { m:'Dec', v:91 }, { m:'Jan', v:74 },
+  { m:'Feb', v:82 }, { m:'Mar', v:88 }, { m:'Apr', v:79 }, { m:'May', v:100 },
+];
+
+/* ==============================================================
+   TOAST
+============================================================== */
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('ic-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+/* ==============================================================
+   NAV — AUTH STATE
+============================================================== */
+function renderNavAuth() {
+  const area = document.getElementById('nav-auth-area');
+  if (currentUser) {
+    const initials = (currentUser.firstName[0] + currentUser.lastName[0]).toUpperCase();
+    area.innerHTML = `
+      <div class="nav-user-pill">
+        <div class="nav-user-avatar">${initials}</div>
+        <span>${currentUser.firstName}</span>
+        <div class="nav-user-menu">
+          <button onclick="openDashboard()">My Dashboard</button>
+          <div class="menu-divider"></div>
+          <button onclick="doLogout()">Log Out</button>
+        </div>
+      </div>`;
+  } else {
+    area.innerHTML = `
+      <button class="nav-auth-btn" onclick="openAuthModal('login')">Log In</button>
+      <button class="nav-auth-btn filled" onclick="openAuthModal('signup')">Sign Up</button>`;
+  }
+}
+
+/* ==============================================================
+   AUTH MODAL
+============================================================== */
+function openAuthModal(screen) {
+  switchAuthScreen(screen);
+  document.getElementById('auth-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAuthModal() {
+  document.getElementById('auth-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  document.getElementById('login-err').textContent = '';
+  document.getElementById('signup-err').textContent = '';
+}
+
+function switchAuthScreen(screen) {
+  document.getElementById('auth-screen-login').style.display   = screen === 'login'  ? 'block' : 'none';
+  document.getElementById('auth-screen-signup').style.display  = screen === 'signup' ? 'block' : 'none';
+}
+
+/* ==============================================================
+   LOGIN
+============================================================== */
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const err   = document.getElementById('login-err');
+
+  if (!email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
+
+  const user = registeredUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
+  if (!user) { err.textContent = 'Invalid email or password.'; return; }
+
+  currentUser = user;
+  localStorage.setItem('ic_user', JSON.stringify(user));
+  closeAuthModal();
+  renderNavAuth();
+  showToast(`Welcome back, ${user.firstName}! 🔥`);
+}
+
+/* ==============================================================
+   SIGNUP
+============================================================== */
+function doSignup() {
+  const first = document.getElementById('su-first').value.trim();
+  const last  = document.getElementById('su-last').value.trim();
+  const email = document.getElementById('su-email').value.trim();
+  const phone = document.getElementById('su-phone').value.trim();
+  const pass  = document.getElementById('su-pass').value;
+  const goal  = document.getElementById('su-goal').value;
+  const err   = document.getElementById('signup-err');
+
+  if (!first || !last || !email || !pass) { err.textContent = 'Please fill in all required fields.'; return; }
+  if (pass.length < 6)                     { err.textContent = 'Password must be at least 6 characters.'; return; }
+  if (!email.includes('@'))                { err.textContent = 'Please enter a valid email address.'; return; }
+  if (registeredUsers.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+    err.textContent = 'An account with this email already exists.'; return;
+  }
+
+  const newUser = { firstName:first, lastName:last, email, phone, password:pass, goal, plan:'None', joined: new Date().toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}), classes:0, streak:0, points:0 };
+  registeredUsers.push(newUser);
+  localStorage.setItem('ic_users', JSON.stringify(registeredUsers));
+
+  currentUser = newUser;
+  localStorage.setItem('ic_user', JSON.stringify(newUser));
+  closeAuthModal();
+  renderNavAuth();
+  showToast(`Account created! Welcome, ${first} 💪`);
+}
+
+/* ==============================================================
+   LOGOUT
+============================================================== */
+function doLogout() {
+  currentUser = null;
+  localStorage.removeItem('ic_user');
+  renderNavAuth();
+  showToast('Logged out. See you at the forge.');
+}
+
+/* ==============================================================
+   PLAN CLICK HANDLER
+============================================================== */
+function handlePlanClick(e, planName, planPrice) {
+  e.preventDefault();
+  selectedPlan = { name:planName, price:planPrice };
+  if (!currentUser) {
+    openAuthModal('signup');
+    showToast('Create an account to get started →');
+    return;
+  }
+  openPaymentModal();
+}
+
+/* ==============================================================
+   PAYMENT MODAL
+============================================================== */
+function openPaymentModal() {
+  goToPayStep('plan');
+  renderPlanSummary();
+  document.getElementById('payment-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePaymentModal() {
+  document.getElementById('payment-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderPlanSummary() {
+  document.getElementById('pay-plan-title').textContent = selectedPlan.name + ' Plan';
+  const tax  = (selectedPlan.price * 0.08).toFixed(2);
+  const total = (selectedPlan.price + parseFloat(tax)).toFixed(2);
+  document.getElementById('pay-plan-summary').innerHTML = `
+    <div class="ic-plan-summary-row"><span>Plan</span><strong>${selectedPlan.name} Membership</strong></div>
+    <div class="ic-plan-summary-row"><span>Billing</span><span>Monthly</span></div>
+    <div class="ic-plan-summary-row"><span>Subtotal</span><span>$${selectedPlan.price}.00</span></div>
+    <div class="ic-plan-summary-row"><span>Tax (8%)</span><span>$${tax}</span></div>
+    <div class="ic-plan-summary-row total"><span>Due Today</span><strong>$${total}</strong></div>`;
+}
+
+function updateBillingCycle() {
+  const cycle = document.getElementById('pay-billing-cycle').value;
+  if (cycle === 'annual') {
+    selectedPlan.displayPrice = (selectedPlan.price * 12 * 0.8).toFixed(2);
+  } else {
+    selectedPlan.displayPrice = null;
+  }
+  renderPlanSummary();
+}
+
+function goToPayStep(step) {
+  ['plan','payment','processing','success'].forEach(s => {
+    document.getElementById('pay-screen-' + s).style.display = 'none';
+  });
+  document.getElementById('pay-screen-' + step).style.display = 'block';
+}
+
+function formatCardNum(el) {
+  let v = el.value.replace(/\D/g,'').substring(0,16);
+  el.value = v.replace(/(.{4})/g,'$1  ').trim();
+}
+function formatExpiry(el) {
+  let v = el.value.replace(/\D/g,'').substring(0,4);
+  if (v.length >= 2) v = v.substring(0,2) + ' / ' + v.substring(2);
+  el.value = v;
+}
+
+function processPayment() {
+  const name   = document.getElementById('pay-card-name').value.trim();
+  const cardNum = document.getElementById('pay-card-num').value.replace(/\s/g,'');
+  const expiry = document.getElementById('pay-expiry').value.trim();
+  const cvv    = document.getElementById('pay-cvv').value.trim();
+  const zip    = document.getElementById('pay-zip').value.trim();
+  const err    = document.getElementById('pay-err');
+
+  if (!name)               { err.textContent = 'Please enter the cardholder name.'; return; }
+  if (cardNum.length < 16) { err.textContent = 'Please enter a valid 16-digit card number.'; return; }
+  if (!expiry || expiry.length < 4) { err.textContent = 'Please enter a valid expiry date.'; return; }
+  if (!cvv || cvv.length < 3)       { err.textContent = 'Please enter a valid CVV.'; return; }
+  if (!zip)                { err.textContent = 'Please enter your ZIP code.'; return; }
+
+  err.textContent = '';
+  goToPayStep('processing');
+
+  setTimeout(() => {
+    // Update user plan
+    if (currentUser) {
+      currentUser.plan = selectedPlan.name;
+      currentUser.classes = Math.floor(Math.random()*12)+1;
+      currentUser.streak  = Math.floor(Math.random()*20)+1;
+      currentUser.points  = Math.floor(Math.random()*900)+200;
+      localStorage.setItem('ic_user', JSON.stringify(currentUser));
+
+      // Update in registered list
+      const idx = registeredUsers.findIndex(u => u.email === currentUser.email);
+      if (idx > -1) { registeredUsers[idx] = currentUser; localStorage.setItem('ic_users', JSON.stringify(registeredUsers)); }
+    }
+    goToPayStep('success');
+    document.getElementById('pay-success-detail').innerHTML =
+      `Your <strong style="color:var(--fire)">${selectedPlan.name} Plan</strong> is now active.<br>
+       Billed monthly at <strong>$${selectedPlan.price}/mo</strong>.<br>
+       A confirmation has been sent to ${currentUser ? currentUser.email : 'your email'}.`;
+  }, 2800);
+}
+
+/* ==============================================================
+   MEMBER DASHBOARD
+============================================================== */
+function openDashboard() {
+  if (!currentUser) { openAuthModal('login'); return; }
+
+  document.getElementById('dash-avatar').textContent  = (currentUser.firstName[0] + currentUser.lastName[0]).toUpperCase();
+  document.getElementById('dash-name').textContent    = currentUser.firstName + ' ' + currentUser.lastName;
+  document.getElementById('dash-plan').textContent    = (currentUser.plan || 'No Plan') + ' Member';
+  document.getElementById('d-classes').textContent    = currentUser.classes  || 0;
+  document.getElementById('d-streak').textContent     = currentUser.streak   || 0;
+  document.getElementById('d-pts').textContent        = currentUser.points   || 0;
+  document.getElementById('b-plan').textContent       = currentUser.plan     || 'None';
+  document.getElementById('b-cost').textContent       = currentUser.plan === 'Warrior' ? '$49/mo' : currentUser.plan === 'Champion' ? '$89/mo' : currentUser.plan === 'Legend' ? '$149/mo' : 'N/A';
+  document.getElementById('prof-first').value         = currentUser.firstName;
+  document.getElementById('prof-last').value          = currentUser.lastName;
+  document.getElementById('prof-email').value         = currentUser.email;
+
+  switchDashTab('overview', document.querySelector('.dash-nav button'));
+  document.getElementById('dashboard-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDashboard() {
+  document.getElementById('dashboard-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function switchDashTab(tab, btn) {
+  document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.dash-nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('dtab-' + tab).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function saveProfile() {
+  if (!currentUser) return;
+  currentUser.firstName = document.getElementById('prof-first').value.trim() || currentUser.firstName;
+  currentUser.lastName  = document.getElementById('prof-last').value.trim()  || currentUser.lastName;
+  localStorage.setItem('ic_user', JSON.stringify(currentUser));
+  renderNavAuth();
+  showToast('Profile updated 💪');
+}
+
+/* ==============================================================
+   ADMIN PANEL
+============================================================== */
+let adminLoggedIn = false;
+
+function openAdminPanel() {
+  document.getElementById('admin-overlay').classList.add('open');
+  document.getElementById('admin-panel').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  if (!adminLoggedIn) {
+    document.getElementById('admin-login-wrap').style.display = 'flex';
+    document.getElementById('admin-dashboard-wrap').style.display = 'none';
+  }
+}
+
+function closeAdminPanel() {
+  document.getElementById('admin-overlay').classList.remove('open');
+  document.getElementById('admin-panel').classList.remove('open');
+  document.body.style.overflow = '';
+  document.getElementById('admin-login-err').textContent = '';
+}
+
+function doAdminLogin() {
+  const u = document.getElementById('admin-user').value.trim();
+  const p = document.getElementById('admin-pass').value;
+  const err = document.getElementById('admin-login-err');
+  if (u === 'admin' && p === 'forge2026') {
+    adminLoggedIn = true;
+    err.textContent = '';
+    document.getElementById('admin-login-wrap').style.display = 'none';
+    const dw = document.getElementById('admin-dashboard-wrap');
+    dw.style.display = 'flex';
+    initAdminDashboard();
+  } else {
+    err.textContent = 'Invalid credentials.';
+    document.getElementById('admin-pass').value = '';
+  }
+}
+
+function adminLogout() {
+  adminLoggedIn = false;
+  document.getElementById('admin-login-wrap').style.display = 'flex';
+  document.getElementById('admin-dashboard-wrap').style.display = 'none';
+  document.getElementById('admin-user').value = '';
+  document.getElementById('admin-pass').value = '';
+  switchAdminTab('overview', document.querySelector('.admin-nav-btn'));
+}
+
+function switchAdminTab(tab, btn) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('atab-' + tab).classList.add('active');
+  if (btn) btn.classList.add('active');
+  const titles = { overview:'Overview', members:'Members', bookings:'Bookings', revenue:'Revenue', coaches:'Coaches' };
+  document.getElementById('admin-page-title').textContent = titles[tab] || tab;
+
+  if (tab === 'members')  renderAdminMembers();
+  if (tab === 'bookings') renderAdminBookings('all');
+  if (tab === 'revenue')  renderAdminPayments();
+  if (tab === 'coaches')  renderAdminCoaches();
+}
+
+function initAdminDashboard() {
+  // Combined members
+  const allMembers = [...ADMIN_MEMBERS, ...registeredUsers.map(u => ({
+    name: u.firstName + ' ' + u.lastName, email:u.email, plan:u.plan||'None',
+    joined:u.joined||'May 2026', status:'active', streak:u.streak||0
+  }))];
+  document.getElementById('a-member-count').textContent = allMembers.length;
+
+  // Revenue chart
+  const max = Math.max(...REV_DATA.map(d => d.v));
+  document.getElementById('admin-rev-chart').innerHTML = REV_DATA.map(d => `
+    <div class="admin-rev-col">
+      <div class="admin-rev-bar" style="height:${Math.round(d.v/max*100)}%" title="$${Math.round(d.v*942)}"></div>
+      <div class="admin-rev-label">${d.m}</div>
+    </div>`).join('');
+
+  // Recent signups table
+  const recent = allMembers.slice(0, 6);
+  document.getElementById('admin-recent-table').innerHTML = `
+    <thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>Joined</th><th>Status</th></tr></thead>
+    <tbody>${recent.map(m => `
+      <tr>
+        <td><strong>${m.name}</strong></td>
+        <td>${m.email}</td>
+        <td><span class="a-badge a-badge-${(m.plan||'').toLowerCase()}">${m.plan||'None'}</span></td>
+        <td>${m.joined}</td>
+        <td><span class="a-badge a-badge-${m.status}">${m.status.toUpperCase()}</span></td>
+      </tr>`).join('')}
+    </tbody>`;
+}
+
+function renderAdminMembers() {
+  const allMembers = [...ADMIN_MEMBERS, ...registeredUsers.map(u => ({
+    name:u.firstName+' '+u.lastName, email:u.email, plan:u.plan||'None',
+    joined:u.joined||'May 2026', status:'active', streak:u.streak||0
+  }))];
+  document.getElementById('admin-members-table').innerHTML = `
+    <thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>Joined</th><th>Streak</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${allMembers.map(m => `
+      <tr>
+        <td><strong>${m.name}</strong></td>
+        <td>${m.email}</td>
+        <td><span class="a-badge a-badge-${(m.plan||'').toLowerCase()}">${m.plan||'None'}</span></td>
+        <td>${m.joined}</td>
+        <td style="color:var(--fire);font-weight:700;">${m.streak} 🔥</td>
+        <td><span class="a-badge a-badge-${m.status}">${m.status.toUpperCase()}</span></td>
+        <td>
+          <button class="admin-action-btn primary" onclick="showToast('Edit member — coming soon')">Edit</button>
+          <button class="admin-action-btn danger" onclick="showToast('Member suspended')">Suspend</button>
+        </td>
+      </tr>`).join('')}
+    </tbody>`;
+}
+
+function renderAdminBookings(filter) {
+  bookingFilter = filter;
+  const data = filter === 'all' ? ADMIN_BOOKINGS : ADMIN_BOOKINGS.filter(b => b.status === filter);
+  document.getElementById('admin-bookings-table').innerHTML = `
+    <thead><tr><th>Member</th><th>Class</th><th>Coach</th><th>Date & Time</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${data.length === 0
+      ? `<tr><td colspan="6" style="text-align:center;padding:2rem;color:rgba(176,190,197,.3);">No bookings found</td></tr>`
+      : data.map(b => `
+        <tr>
+          <td><strong>${b.member}</strong></td>
+          <td>${b.cls}</td>
+          <td>${b.coach}</td>
+          <td style="font-family:monospace;font-size:.78rem;">${b.date}</td>
+          <td><span class="a-badge a-badge-${b.status}">${b.status.toUpperCase()}</span></td>
+          <td>
+            ${b.status==='pending'?`<button class="admin-action-btn primary" onclick="showToast('Booking confirmed')">Confirm</button>`:''}
+            <button class="admin-action-btn danger" onclick="showToast('Booking cancelled')">Cancel</button>
+          </td>
+        </tr>`).join('')}
+    </tbody>`;
+}
+
+function filterBookings(f, btn) {
+  document.querySelectorAll('#atab-bookings .admin-action-btn').forEach(b => b.classList.remove('active','primary'));
+  btn.classList.add('active','primary');
+  renderAdminBookings(f);
+}
+
+function renderAdminPayments() {
+  document.getElementById('admin-payments-table').innerHTML = `
+    <thead><tr><th>ID</th><th>Member</th><th>Plan</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
+    <tbody>${ADMIN_PAYMENTS.map(p => `
+      <tr>
+        <td style="font-family:monospace;color:var(--fire);font-size:.75rem;">${p.id}</td>
+        <td><strong>${p.member}</strong></td>
+        <td><span class="a-badge a-badge-${p.plan.toLowerCase()}">${p.plan}</span></td>
+        <td style="font-weight:700;color:var(--chrome);">${p.amount}</td>
+        <td>${p.date}</td>
+        <td><span class="a-badge ${p.status==='paid'?'a-badge-active':p.status==='pending'?'a-badge-pending':'a-badge-cancelled'}">${p.status.toUpperCase()}</span></td>
+      </tr>`).join('')}
+    </tbody>`;
+}
+
+function renderAdminCoaches() {
+  document.getElementById('admin-coaches-table').innerHTML = `
+    <thead><tr><th>Coach</th><th>Speciality</th><th>Classes/Mo</th><th>Rating</th><th>Clients</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${ADMIN_COACHES.map(c => `
+      <tr>
+        <td><strong>${c.name}</strong></td>
+        <td>${c.spec}</td>
+        <td style="text-align:center;">${c.classes}</td>
+        <td style="color:var(--fire);font-weight:700;">${c.rating} ★</td>
+        <td>${c.clients}+</td>
+        <td><span class="a-badge a-badge-active">${c.status.toUpperCase()}</span></td>
+        <td>
+          <button class="admin-action-btn primary" onclick="showToast('Coach profile — coming soon')">View</button>
+          <button class="admin-action-btn" onclick="showToast('Schedule updated')">Schedule</button>
+        </td>
+      </tr>`).join('')}
+    </tbody>`;
+}
+
+/* ==============================================================
+   ESC KEY CLOSE
+============================================================== */
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  closeAuthModal();
+  closePaymentModal();
+  closeDashboard();
+  closeAdminPanel();
+});
+
+/* ==============================================================
+   INIT
+============================================================== */
+renderNavAuth();
+</script>
+</body>
+</html>
